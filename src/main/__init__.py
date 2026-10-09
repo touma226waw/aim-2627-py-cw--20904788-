@@ -36,12 +36,31 @@ class Facing(Enum):
 # ---------------------------------------------------------------------------
 def hp_ratio(hp, max_hp):
     """TODO(Q1)：血量百分比，返回 0-100 的 int；计算与边界规则见题面 Q1 规范。"""
-    raise NotImplementedError("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")
+    """("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")"""
+
+    # 血量百分比，返回 0-100 的 int
+    hp_per = int((hp / max_hp) * 100) if max_hp > 0 else 0
+    hp_per = max(0, min(100, hp_per))  # 限制在 0-100 范围内
+
+    return hp_per
 
 
 def status_report(name, robot_type, hp, max_hp, battery):
     """TODO(Q1)：一行自检报告字符串；档位判定与逐字符格式见题面 Q1 规范。"""
-    raise NotImplementedError("Q1 status_report：题面 Q1·电量映射与报告格式")
+    """("Q1 status_report：题面 Q1·电量映射与报告格式")"""
+
+    hp_per = hp_ratio(hp, max_hp)
+
+    if battery >= 60:
+        battery_level = "OK"
+    elif 20 <= battery < 60:
+        battery_level = "WARNING"
+    else:
+        battery_level = "LOW"
+
+    result = f"{name:<10}|{robot_type:^10}|HP {hp_per:>3}%|BAT {battery:>3}%|{battery_level}"
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -50,12 +69,113 @@ def status_report(name, robot_type, hp, max_hp, battery):
 def analyze_damage_log(lines):
     """TODO(Q2)：解析混合格式伤害日志，返回固定契约的统计 dict；
     行格式、去重与统计口径见题面 Q2 规范。"""
-    raise NotImplementedError("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")
+    """("Q2 analyze_damage_log：题面 Q2·多源日志解析与统计")"""
 
+    import json
+
+    # 初始化
+    starts = {'total': 0,
+              "by_armor": {"front": 0, "left": 0, "right": 0},
+              "most_hit": None,
+              "avg": 0.0}
+    id_set = set()
+    event_count = 0
+    armor_map = {"F": "front", "L": "left", "R": "right"}
+
+    # 跳过不符合格式的行
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        elif not line.startswith('{') and not line.startswith(('F', 'L', 'R')):
+            continue
+
+    # 分辨 JSON行，传感器行，脏行并累加
+        if line.startswith('{'):
+            # JSON行分辨
+            try:
+                data = json.loads(line)
+                if type(data) is not dict:
+                    continue
+                armor = data.get('armor')
+                damage = data.get("damage")
+                if armor not in ("front", "left", "right"):
+                    continue
+                if type(damage) is not int or damage <= 0:
+                    continue
+                if "id" in data:
+                    # id去重
+                    id_num = data["id"]
+                    if id_num in id_set:
+                        continue
+                    id_set.add(id_num)
+                # 累加
+                starts['total'] += damage
+                starts['by_armor'][armor] += damage
+                event_count += 1
+            except Exception:
+                pass
+
+        elif line.startswith(('F:', 'L:', 'R:')):
+            # 传感器行分辨
+            parts = line.split(',')
+            temporary = []
+            valid = True
+
+            for part in parts:
+                try:
+                    pieces = part.split(':')
+                    if len(pieces) != 2:
+                        valid = False
+                        break
+                    armor, damageV = pieces
+                except ValueError:
+                    valid = False
+                    break
+                if armor not in ("F", "L", "R"):
+                    valid = False
+                    break
+                if not damageV.isdigit():
+                    valid = False
+                    break
+                damageR = int(damageV)
+                if damageR <= 0:
+                    valid = False
+                    break
+                temporary.append((armor, damageR))
+            if not valid:
+                continue
+
+      # 累加
+            for armor, damageR in temporary:
+                starts['total'] += damageR
+                starts['by_armor'][armor_map[armor]] += damageR
+                event_count += 1
+        else:
+            pass
+
+# 最大受击部位
+    if event_count > 0:
+        starts["most_hit"] = max(
+            starts["by_armor"],
+            key=starts["by_armor"].get
+        )
+    else:
+        starts["most_hit"] = None
+
+        # 平均伤害
+    if event_count > 0:
+        starts["avg"] = round(starts["total"]/event_count, 2)
+    else:
+        starts["avg"] = 0.0
+
+    return starts
 
 # ---------------------------------------------------------------------------
 # Q3 SentryGrid（题面 Q3·载体物理规则）
 # ---------------------------------------------------------------------------
+
+
 class SentryGrid:
     """哨兵仿真载体（构造与只读属性已提供；四个 TODO 方法由你实现）。"""
 
@@ -139,35 +259,114 @@ class SentryGrid:
 
     @current_pos.setter
     def current_pos(self, value):
-        """TODO(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
-        raise NotImplementedError("Q3 current_pos.setter：题面 Q3·位置校验三步")
+        """(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
+        """("Q3 current_pos.setter：题面 Q3·位置校验三步")"""
+        # 位置必须是 tuple 或 list
+        if not isinstance(value, (tuple, list)):
+            raise TypeError
+        # 位置长度必须是 2
+        if len(value) != 2:
+            raise TypeError
+        # 规范化储存
+        normal_value = (int(value[0]), int(value[1]))
+        self._pos = normal_value
 
     def move_forward(self):
-        """TODO(Q3)：朝当前 facing 前进一格，返回执行后的位置；
+        """(Q3)：朝当前 facing 前进一格，返回执行后的位置；
         碰撞、耗电与断电语义见题面 Q3 规范。"""
-        raise NotImplementedError("Q3 move_forward：题面 Q3·前进、碰撞与断电")
+        """("Q3 move_forward：题面 Q3·前进、碰撞与断电")"""
+        # 检测是否断电
+        if self._fuel <= 0:
+            return self._pos
+        # 坐标与移动后坐标
+        # dx or dy 的+—1决定朝向
+        x, y = self._pos
+        dx, dy = self._facing.delta
+        target_x = x + dx
+        target_y = y + dy
+
+        # 障碍判断，电量和事件的更新
+        if self.is_blocked(target_x, target_y):
+            self._collision_count += 1
+        else:
+            self._pos = (target_x, target_y)
+            self._fuel -= 1
+
+        return self._pos
 
     def turn_left(self):
-        """TODO(Q3)：原地左转 90°，返回新的 Facing（不耗电）。"""
-        raise NotImplementedError("Q3 turn_left")
+        """(Q3)：原地左转 90°，返回新的 Facing（不耗电）。"""
+        """("Q3 turn_left")"""
+        # 字典映射直接改变facing
+        left_map = {
+            Facing.UP: Facing.LEFT,
+            Facing.LEFT: Facing.DOWN,
+            Facing.DOWN: Facing.RIGHT,
+            Facing.RIGHT: Facing.UP,
+        }
+        self._facing = left_map[self._facing]
+        return self._facing
 
     def turn_right(self):
-        """TODO(Q3)：原地右转 90°，返回新的 Facing（不耗电）。"""
-        raise NotImplementedError("Q3 turn_right")
+        """(Q3)：原地右转 90°，返回新的 Facing（不耗电）。"""
+        """("Q3 turn_right")"""
+        right_map = {
+            Facing.UP: Facing.RIGHT,
+            Facing.RIGHT: Facing.DOWN,
+            Facing.DOWN: Facing.LEFT,
+            Facing.LEFT: Facing.UP,
+        }
+
+        self._facing = right_map[self._facing]
+        return self._facing
 
 
 # ---------------------------------------------------------------------------
 # Q4 贪心导航（题面 Q4·单步贪心导航策略）
 # ---------------------------------------------------------------------------
 def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
-    """TODO(Q4)：返回下一步应朝向的 Facing；
+    """(Q4)：返回下一步应朝向的 Facing；
     候选判定、优先级与回退规则见题面 Q4 规范。"""
-    raise NotImplementedError("Q4 next_step_toward：题面 Q4·贪心策略与回退")
+    """("Q4 next_step_toward：题面 Q4·贪心策略与回退")"""
+    # x,y位终点  x1,y1为起点  x2,y2 and x3,y3均为下一步坐标
+    # 初始化
+    x1, y1 = pos
+    x, y = target
+    Manhattan1 = abs(x1 - x) + abs(y1 - y)
+    candi = []
 
+    # 遍历方向，找候选方向
+    for facing in (Facing.UP, Facing.DOWN, Facing.LEFT, Facing.RIGHT):
+        dx, dy = facing.delta
+        candi_pos = (x1+dx, y1+dy)
+        if candi_pos in obstacles:
+            continue
+        Manhattan2 = abs(x1 + dx - x) + abs(y1 + dy - y)
+        if Manhattan1 > Manhattan2:
+            candi.append(facing)
+    if not candi:
+        return current_facing
+
+    # 轴向偏好
+    x3 = x1 + dx
+    y3 = y1 + dy
+    if abs(x3 - x) > abs(y3 - y):
+        prefer = (Facing.RIGHT, Facing.LEFT)
+    elif abs(x3 - x) < abs(y3 - y):
+        prefer = (Facing.UP, Facing.DOWN)
+    else:
+        return candi[0]
+
+    # 输出贪心方向结果
+    for result in prefer:
+        if result in candi:
+            return result
 
 # ---------------------------------------------------------------------------
 # Q5 哨兵决策机（题面 Q5·裁判系统决策规则表）
 # ---------------------------------------------------------------------------
+
+
 class SentryState(Enum):
     """哨兵状态机（已提供，勿改）。"""
 
