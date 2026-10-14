@@ -17,10 +17,12 @@
 # 路线统计
 # ---------------------------------------------------------------------------
 
+
 def segment_length_cm(p1, p2):
     """两个检查点 (x, y) 之间的路线长度，单位：厘米。
     检查点坐标单位为格，1 格 = 1 米 = 100 厘米，路线按曼哈顿距离计算。"""
     return (abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])) * 100
+
 
 def total_route_meters(points):
     """整条巡逻路线的长度，单位：米。
@@ -34,6 +36,8 @@ def total_route_meters(points):
 # ---------------------------------------------------------------------------
 # 事件日志
 # ---------------------------------------------------------------------------
+
+
 def parse_event(line):
     """解析一行事件日志，形如 "MOVE,3" / "SCAN,0" / "IDLE,1"。
     合法返回 {"type": str, "count": int}；脏行返回 None（不得抛异常）。"""
@@ -49,12 +53,14 @@ def parse_event(line):
         return None
     return {"type": parts[0], "count": int(parts[1])}
 
+
 def first_positive(samples):
     """返回样本序列中第一个正数；若没有正数，返回 None（上游约定）。"""
     for s in samples:
         if s > 0:
-            return s   
+            return s
     return None
+
 
 def calibrate(samples):
     """以第一个正样本为基线计算累计漂移：sum(s - baseline)。
@@ -67,6 +73,7 @@ def calibrate(samples):
     for s in samples:
         drift += (s - baseline)
     return drift
+
 
 def summarize_events(events, max_id):
     """统计 id 不超过 max_id 的事件。
@@ -84,18 +91,21 @@ def summarize_events(events, max_id):
             continue
     return {"events": used, "steps": steps}
 
+
 def log(message, history=None):
     """向历史追加一条日志并返回整个历史列表。
     不显式传入 history 时，每次调用都从空历史开始。"""
     if history is None:
         history = []
-    
+
     history.append(message)
     return history
 
 # ---------------------------------------------------------------------------
 # 旧版巡逻模拟
 # ---------------------------------------------------------------------------
+
+
 def run_legacy_sim(rounds, stamina_start=100):
     """旧版巡逻模拟。
 
@@ -110,7 +120,7 @@ def run_legacy_sim(rounds, stamina_start=100):
     round_ = 0
     trace = []
     while round_ < rounds:
-        
+
         if round_ >= 3:
             stamina -= 13
         else:

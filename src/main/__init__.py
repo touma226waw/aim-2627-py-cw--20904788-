@@ -38,7 +38,8 @@ def hp_ratio(hp, max_hp):
     """TODO(Q1)：血量百分比，返回 0-100 的 int；计算与边界规则见题面 Q1 规范。"""
     """("Q1 hp_ratio：题面 Q1·血量百分比与精度保障")"""
 
-    hp_per = int((hp / max_hp) * 100) if max_hp > 0 else 0   ## 血量百分比，返回 0-100 的 int
+    # 血量百分比，返回 0-100 的 int
+    hp_per = int((hp / max_hp) * 100) if max_hp > 0 else 0
     hp_per = max(0, min(100, hp_per))  # 限制在 0-100 范围内
     return hp_per
 
@@ -51,10 +52,10 @@ def status_report(name, robot_type, hp, max_hp, battery):
 
     if battery >= 60:
         battery_level = "OK"
-    elif 20<= battery < 60:
+    elif 20 <= battery < 60:
         battery_level = "WARNING"
     else:
-        battery_level = "LOW"  
+        battery_level = "LOW"
 
     result = f"{name:<10}|{robot_type:^10}|HP {hp_per:>3}%|BAT {battery:>3}%|{battery_level}"
 
@@ -71,65 +72,65 @@ def analyze_damage_log(lines):
 
     import json
 
-    #初始化
-    starts = {'total' : 0 ,
-     "by_armor": {"front": 0, "left": 0, "right": 0},
-     "most_hit": None,
-     "avg": 0.0 }
+    # 初始化
+    starts = {'total': 0,
+              "by_armor": {"front": 0, "left": 0, "right": 0},
+              "most_hit": None,
+              "avg": 0.0}
     id_set = set()
     event_count = 0
     armor_map = {"F": "front", "L": "left", "R": "right"}
-    
-    #跳过不符合格式的行
+
+    # 跳过不符合格式的行
     for line in lines:
         line = line.strip()
         if not line:
             continue
         elif not line.startswith('{') and not line.startswith(('F', 'L', 'R')):
-            continue 
+            continue
 
-    #分辨 JSON行，传感器行，脏行并累加
+    # 分辨 JSON行，传感器行，脏行并累加
         if line.startswith('{'):
-            #JSON行分辨
+            # JSON行分辨
             try:
                 data = json.loads(line)
                 if type(data) is not dict:
                     continue
                 armor = data.get('armor')
                 damage = data.get("damage")
-                if armor not in ("front","left","right"):
+                if armor not in ("front", "left", "right"):
                     continue
                 if type(damage) is not int or damage <= 0:
                     continue
                 if "id" in data:
-                    #id去重
+                    # id去重
                     id_num = data["id"]
                     if id_num in id_set:
                         continue
                     id_set.add(id_num)
-                #累加    
+                # 累加
                 starts['total'] += damage
                 starts['by_armor'][armor] += damage
                 event_count += 1
             except Exception:
                 pass
 
-        elif line.startswith(('F:','L:','R:')):  
-            #传感器行分辨
+        elif line.startswith(('F:', 'L:', 'R:')):
+            # 传感器行分辨
             parts = line.split(',')
             temporary = []
             valid = True
 
             for part in parts:
                 try:
-                     pieces = part.split(':')
-                     if len(pieces) != 2:
+                    pieces = part.split(':')
+                    if len(pieces) != 2:
                         valid = False
                         break
-                     armor, damageV = pieces
+                    armor, damageV = pieces
                 except ValueError:
-                     valid = False
-                     break
+                    valid = False
+                    break
                 if armor not in ("F", "L", "R"):
                     valid = False
                     break
@@ -138,13 +139,13 @@ def analyze_damage_log(lines):
                     break
                 damageR = int(damageV)
                 if damageR <= 0:
-                        valid = False
-                        break
+                    valid = False
+                    break
                 temporary.append((armor, damageR))
             if not valid:
                 continue
 
-      #累加
+      # 累加
             for armor, damageR in temporary:
                 starts['total'] += damageR
                 starts['by_armor'][armor_map[armor]] += damageR
@@ -152,18 +153,18 @@ def analyze_damage_log(lines):
         else:
             pass
 
-#最大受击部位
+# 最大受击部位
     if event_count > 0:
         starts["most_hit"] = max(
-        starts["by_armor"],
-        key=starts["by_armor"].get
-    )
+            starts["by_armor"],
+            key=starts["by_armor"].get
+        )
     else:
         starts["most_hit"] = None
 
-        #平均伤害
+        # 平均伤害
     if event_count > 0:
-        starts["avg"] = round(starts["total"]/event_count,2)
+        starts["avg"] = round(starts["total"]/event_count, 2)
     else:
         starts["avg"] = 0.0
 
@@ -172,6 +173,8 @@ def analyze_damage_log(lines):
 # ---------------------------------------------------------------------------
 # Q3 SentryGrid（题面 Q3·载体物理规则）
 # ---------------------------------------------------------------------------
+
+
 class SentryGrid:
     """哨兵仿真载体（构造与只读属性已提供；四个 TODO 方法由你实现）。"""
 
@@ -257,31 +260,31 @@ class SentryGrid:
     def current_pos(self, value):
         """(Q3)：位置 setter；三重输入校验见题面 Q3 规范第 1 条。"""
         """("Q3 current_pos.setter：题面 Q3·位置校验三步")"""
-        #位置必须是 tuple 或 list
+        # 位置必须是 tuple 或 list
         if not isinstance(value, (tuple, list)):
             raise TypeError
-        #位置长度必须是 2
+        # 位置长度必须是 2
         if len(value) != 2:
             raise TypeError
-        #规范化储存
-        normal_value = (int(value[0]),int(value[1]))
+        # 规范化储存
+        normal_value = (int(value[0]), int(value[1]))
         self._pos = normal_value
-            
+
     def move_forward(self):
         """(Q3)：朝当前 facing 前进一格，返回执行后的位置；
         碰撞、耗电与断电语义见题面 Q3 规范。"""
         """("Q3 move_forward：题面 Q3·前进、碰撞与断电")"""
-        #检测是否断电
+        # 检测是否断电
         if self._fuel <= 0:
             return self._pos
-        #坐标与移动后坐标
+        # 坐标与移动后坐标
         # dx or dy 的+—1决定朝向
         x, y = self._pos
         dx, dy = self._facing.delta
         target_x = x + dx
         target_y = y + dy
 
-        #障碍判断，电量和事件的更新
+        # 障碍判断，电量和事件的更新
         if self.is_blocked(target_x, target_y):
             self._collision_count += 1
         else:
@@ -290,29 +293,28 @@ class SentryGrid:
 
         return self._pos
 
-
     def turn_left(self):
         """(Q3)：原地左转 90°，返回新的 Facing（不耗电）。"""
         """("Q3 turn_left")"""
-        #字典映射直接改变facing
+        # 字典映射直接改变facing
         left_map = {
-    Facing.UP: Facing.LEFT,
-    Facing.LEFT: Facing.DOWN,
-    Facing.DOWN: Facing.RIGHT,
-    Facing.RIGHT: Facing.UP,
-}
+            Facing.UP: Facing.LEFT,
+            Facing.LEFT: Facing.DOWN,
+            Facing.DOWN: Facing.RIGHT,
+            Facing.RIGHT: Facing.UP,
+        }
         self._facing = left_map[self._facing]
         return self._facing
-    
+
     def turn_right(self):
         """(Q3)：原地右转 90°，返回新的 Facing（不耗电）。"""
         """("Q3 turn_right")"""
         right_map = {
-        Facing.UP: Facing.RIGHT,
-        Facing.RIGHT: Facing.DOWN,
-        Facing.DOWN: Facing.LEFT,
-        Facing.LEFT: Facing.UP,
-    }
+            Facing.UP: Facing.RIGHT,
+            Facing.RIGHT: Facing.DOWN,
+            Facing.DOWN: Facing.LEFT,
+            Facing.LEFT: Facing.UP,
+        }
 
         self._facing = right_map[self._facing]
         return self._facing
@@ -325,45 +327,47 @@ def next_step_toward(pos, target, obstacles, current_facing=Facing.UP):
     """(Q4)：返回下一步应朝向的 Facing；
     候选判定、优先级与回退规则见题面 Q4 规范。"""
     """("Q4 next_step_toward：题面 Q4·贪心策略与回退")"""
-    #x,y位终点  x1,y1为起点  x2,y2 and x3,y3均为下一步坐标
-    #candi为候选方向
-    #初始化
-    x1,y1 = pos
+    # x,y位终点  x1,y1为起点  x2,y2 and x3,y3均为下一步坐标
+    # candi为候选方向
+    # 初始化
+    x1, y1 = pos
     x, y = target
     Manhattan1 = abs(x1 - x) + abs(y1 - y)
     candi = []
 
-    #遍历方向，找候选方向
+    # 遍历方向，找候选方向
     for facing in (Facing.UP, Facing.DOWN, Facing.LEFT, Facing.RIGHT):
-        dx,dy = facing.delta
-        candi_pos = (x1+dx,y1+dy)
+        dx, dy = facing.delta
+        candi_pos = (x1+dx, y1+dy)
         if candi_pos in obstacles:
-            continue 
+            continue
         Manhattan2 = abs(x1 + dx - x) + abs(y1 + dy - y)
         if Manhattan1 > Manhattan2:
             candi.append(facing)
-    if  not candi:
-            return current_facing
+    if not candi:
+        return current_facing
 
-    #轴向偏好
+    # 轴向偏好
     x_gap = abs(x1 - x)
     y_gap = abs(y1 - y)
     if x_gap > y_gap:
-        prefer = (Facing.RIGHT,Facing.LEFT)
+        prefer = (Facing.RIGHT, Facing.LEFT)
     elif x_gap < y_gap:
-        prefer = (Facing.UP,Facing.DOWN)
+        prefer = (Facing.UP, Facing.DOWN)
     else:
         return candi[0]
 
-    #输出贪心方向结果
+    # 输出贪心方向结果
     for result in prefer:
         if result in candi:
-                return result
+            return result
     return candi[0]
 
 # ---------------------------------------------------------------------------
 # Q5 哨兵决策机（题面 Q5·裁判系统决策规则表）
 # ---------------------------------------------------------------------------
+
+
 class SentryState(Enum):
     """哨兵状态机（已提供，勿改）。"""
 
@@ -378,32 +382,32 @@ def decide(sensor, state, hp, heat):
     """(Q5)：纯函数决策，返回 (action: str, new_state: SentryState)；
     sensor 字段契约、R1-R7 规则表与非法输入处理见题面 Q5 规范。"""
     """("Q5 decide：题面 Q5·决策规则表 R1-R7")"""
-    
+
     required = (
-    "enemy_frames",
-    "enemy_dist",
-    "robot_type",
-    "max_hp",
-)
-#检查sensor字段是否合法
-#是否字典
+        "enemy_frames",
+        "enemy_dist",
+        "robot_type",
+        "max_hp",
+    )
+# 检查sensor字段是否合法
+# 是否字典
     if not isinstance(sensor, dict):
         raise ValueError
     for key in required:
-         if key not in sensor:
+        if key not in sensor:
             raise ValueError
-#是否枚举
+# 是否枚举
     if not isinstance(state, SentryState):
         raise ValueError
-#接受tuple和list    
+# 接受tuple和list
     frames = sensor["enemy_frames"]
     if not isinstance(frames, (tuple, list)):
         raise ValueError
-#敌检历史长度1-6
+# 敌检历史长度1-6
     if not 1 <= len(frames) <= 6:
         raise ValueError
 
-#读取初始条件
+# 读取初始条件
     frames = sensor["enemy_frames"]
     distance = sensor["enemy_dist"]
     robot_type = sensor["robot_type"]
@@ -411,21 +415,21 @@ def decide(sensor, state, hp, heat):
     hp_pct = hp_ratio(hp, max_hp)
     visible = bool(frames[-1])
 
-#R1
+# R1
     if hp_pct <= 30:
         return ("RETREAT", SentryState.RETREAT)
     else:
         pass
-#R2
+# R2
     if state == SentryState.RETREAT:
         if hp_pct > 30:
             return ("RETURN", SentryState.RETURN)
         else:
             return ("RETREAT", SentryState.RETREAT)
-#R3
+# R3
     if state == SentryState.RETURN:
         return ("MOVE_BASE", SentryState.PATROL)
-#R4
+# R4
     if state == SentryState.ENGAGE and bool(sensor["enemy_frames"][-1]) is True:
         if distance <= 3:
             return ("SHOOT", SentryState.ENGAGE)
@@ -436,14 +440,14 @@ def decide(sensor, state, hp, heat):
                 return ("MOVE_LEFT", SentryState.ENGAGE)
             else:
                 pass
-#R5
+# R5
     if state == SentryState.ENGAGE and bool(sensor["enemy_frames"][-1]) is not True:
         if bool(sensor["enemy_frames"][-2]) is True:
             return ("HOLD_FIRE", SentryState.ENGAGE)
         elif bool(sensor["enemy_frames"][-2]) is False:
             return ("SCAN", SentryState.SUSPECT)
-#R6
-    if state in (SentryState.PATROL,SentryState.SUSPECT) and bool(sensor["enemy_frames"][-1]) is True:
+# R6
+    if state in (SentryState.PATROL, SentryState.SUSPECT) and bool(sensor["enemy_frames"][-1]) is True:
         if len(sensor["enemy_frames"]) >= 2 and bool(sensor["enemy_frames"][-2]) is True:
             if sensor["enemy_dist"] <= 3:
                 return ("SHOOT", SentryState.ENGAGE)
@@ -456,21 +460,23 @@ def decide(sensor, state, hp, heat):
                     pass
         else:
             return ("SCAN", SentryState.SUSPECT)
-#R7
-    if state in (SentryState.PATROL,SentryState.SUSPECT) and bool(sensor["enemy_frames"][-1]) is False:
+# R7
+    if state in (SentryState.PATROL, SentryState.SUSPECT) and bool(sensor["enemy_frames"][-1]) is False:
         if state == SentryState.PATROL:
             return ("PATROL_MOVE", SentryState.PATROL)
         else:
             return ("SCAN", SentryState.SUSPECT)
-            
+
 # ---------------------------------------------------------------------------
 # Q6 巡逻任务（题面 Q6·巡逻契约与验收阈值）
 # ---------------------------------------------------------------------------
+
+
 def run_patrol(grid, max_steps=500):
     """(Q6)：sense → decide → act 主循环；
     # 循环结构、终止条件、脱困自由度与统计返回契约见题面 Q6 规范。"""
     """("Q6 run_patrol：题面 Q6·主循环与统计契约")"""
-#初始化
+# 初始化
     steps = 0
     visited = {grid.current_pos}
     cx, cy = grid.current_pos
@@ -480,33 +486,33 @@ def run_patrol(grid, max_steps=500):
     no_progress_count = 0
     escape_mode = False
     left_of = {
-    Facing.UP: Facing.LEFT,
-    Facing.LEFT: Facing.DOWN,
-    Facing.DOWN: Facing.RIGHT,
-    Facing.RIGHT: Facing.UP,
-}
+        Facing.UP: Facing.LEFT,
+        Facing.LEFT: Facing.DOWN,
+        Facing.DOWN: Facing.RIGHT,
+        Facing.RIGHT: Facing.UP,
+    }
     right_of = {
         Facing.UP: Facing.RIGHT,
         Facing.LEFT: Facing.UP,
         Facing.DOWN: Facing.LEFT,
-        Facing.RIGHT: Facing.DOWN,}
+        Facing.RIGHT: Facing.DOWN, }
     entry_dist = 0
-#开始巡逻
+# 开始巡逻
     while steps < max_steps and grid.fuel > 0 and not grid.found_enemy:
-#困境下一步方向,优先左手规则            
+        # 困境下一步方向,优先左手规则
         if escape_mode:
-           
-    #左手规则如下，左前右后 escape_hand = "L"
+
+            # 左手规则如下，左前右后 escape_hand = "L"
             if escape_hand == "L":
                 left = left_of[grid.facing]
                 front = grid.facing
                 right = {v: k for k, v in left_of.items()}[grid.facing]
                 back = {
-    Facing.UP: Facing.DOWN,
-    Facing.DOWN: Facing.UP,
-    Facing.LEFT: Facing.RIGHT,
-    Facing.RIGHT: Facing.LEFT,
-}[grid.facing]
+                    Facing.UP: Facing.DOWN,
+                    Facing.DOWN: Facing.UP,
+                    Facing.LEFT: Facing.RIGHT,
+                    Facing.RIGHT: Facing.LEFT,
+                }[grid.facing]
                 dx, dy = left.delta
                 left_cell = (cx + dx, cy + dy)
                 dx, dy = front.delta
@@ -515,9 +521,9 @@ def run_patrol(grid, max_steps=500):
                 right_cell = (cx + dx, cy + dy)
                 if not grid.is_blocked(left_cell[0], left_cell[1]):
                     desired_facing = left
-                elif not grid.is_blocked(front_cell[0],front_cell[1]):
+                elif not grid.is_blocked(front_cell[0], front_cell[1]):
                     desired_facing = front
-                elif not grid.is_blocked(right_cell[0],right_cell[1]):  
+                elif not grid.is_blocked(right_cell[0], right_cell[1]):
                     desired_facing = right
                 else:
                     desired_facing = back
@@ -539,64 +545,65 @@ def run_patrol(grid, max_steps=500):
                 left_cell = (cx + dx, cy + dy)
                 if not grid.is_blocked(right_cell[0], right_cell[1]):
                     desired_facing = right
-                elif not grid.is_blocked(front_cell[0],front_cell[1]):
+                elif not grid.is_blocked(front_cell[0], front_cell[1]):
                     desired_facing = front
-                elif not grid.is_blocked(left_cell[0],left_cell[1]):  
+                elif not grid.is_blocked(left_cell[0], left_cell[1]):
                     desired_facing = left
                 else:
                     desired_facing = back
-#贪心下一步方向
-#调用next...函数，传入了四个参数计算下一步期望方向
+# 贪心下一步方向
+# 调用next...函数，传入了四个参数计算下一步期望方向
         else:
-            desired_facing = next_step_toward(   
-            grid.current_pos,
-            grid.enemy_pos,
-            grid.obstacles,
-            grid.facing,
-        )
-#一直右转直到与期望方向重合
-        while grid.facing is not desired_facing: 
-                 grid.turn_right()
-#前进1并记录更新历史
+            desired_facing = next_step_toward(
+                grid.current_pos,
+                grid.enemy_pos,
+                grid.obstacles,
+                grid.facing,
+            )
+# 一直右转直到与期望方向重合
+        while grid.facing is not desired_facing:
+            grid.turn_right()
+# 前进1并记录更新历史
         grid.move_forward()
         cx, cy = grid.current_pos
         cur_dist = abs(cx - ex) + abs(cy - ey)
         steps += 1
-        visited.add(grid.current_pos) 
-#判断是否是困境
+        visited.add(grid.current_pos)
+# 判断是否是困境
         if cur_dist < pre_dist:
-    #有进展，进入贪心
+            # 有进展，进入贪心
             no_progress_count = 0
         else:
-    #没有进展，开启三步判定
+            # 没有进展，开启三步判定
             no_progress_count += 1
         pre_dist = cur_dist
-#判定陷入困境，开始脱困（优先左手规则）
+# 判定陷入困境，开始脱困（优先左手规则）
         if no_progress_count >= 2 and not escape_mode:
             escape_mode = True
             entry_dist = cur_dist
             try_steps = 0
             escape_hand = "L"
-#判断是否脱困
-    #成功脱困
+# 判断是否脱困
+    # 成功脱困
         if escape_mode:
             try_steps += 1
             if entry_dist > cur_dist:
                 escape_mode = False
                 no_progress_count = 0
                 pre_dist = cur_dist
-    #左手5步无法脱困，切换右手
+    # 左手5步无法脱困，切换右手
             elif try_steps > 4:
                 escape_hand = "R" if escape_hand == "L" else "L"
                 try_steps = 0
-            
+
     return {
-    "steps": steps,
-    "collisions": grid.collision_count,
-    "visited_count": len(visited),
-    "found_enemy": grid.found_enemy,
-    "success": grid.found_enemy,
-}
+        "steps": steps,
+        "collisions": grid.collision_count,
+        "visited_count": len(visited),
+        "found_enemy": grid.found_enemy,
+        "success": grid.found_enemy,
+    }
+
 
 def report_to_json(stats):
     """(Q6)：把 stats 序列化为确定性的 JSON 字符串，见题面 Q6 规范。"""
